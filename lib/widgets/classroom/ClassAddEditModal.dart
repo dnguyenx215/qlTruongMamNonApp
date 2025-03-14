@@ -22,6 +22,8 @@ class _ClassAddEditModalState extends State<ClassAddEditModal> {
   int? _selectedTeacherId;
   List<Map<String, dynamic>> _teachersList = [];
   bool _isLoading = false;
+  String? _selectedGradeBlockId;
+  List<Map<String, dynamic>> _gradeBlocksList = [];
 
   @override
   void initState() {
@@ -33,21 +35,54 @@ class _ClassAddEditModalState extends State<ClassAddEditModal> {
       text: widget.existingClass?['capacity']?.toString() ?? '',
     );
     _selectedTeacherId = widget.existingClass?['gvcnId'];
-    _loadTeachers();
+    _selectedGradeBlockId = widget.existingClass?['grade_block_id']?.toString();
+
+    // Load teachers and grade blocks
+    _loadInitialData();
   }
 
-  Future<void> _loadTeachers() async {
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _capacityController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadInitialData() async {
     setState(() => _isLoading = true);
     try {
-      final teachers = await ClassService.fetchTeachers();
+      // Parallel loading of teachers and grade blocks
+      final teachersLoader = ClassService.fetchTeachers();
+      final gradeBlocksLoader = ClassService.fetchGradeBlocks();
+
+      final teachers = await teachersLoader;
+      final gradeBlocks = await gradeBlocksLoader;
+
       setState(() {
-        _teachersList = teachers;
-        // Ensure selected teacher is in the list if it exists
+        // Ensure unique teachers with no duplicates
+        _teachersList = _removeDuplicateTeachers(teachers);
+        _gradeBlocksList = _removeDuplicateBlocks(gradeBlocks);
+
+        // Ensure selected teacher exists in list
         if (_selectedTeacherId != null &&
             !_teachersList.any((t) => t['id'] == _selectedTeacherId)) {
           _teachersList.add({
             'id': _selectedTeacherId,
             'name': 'GVCN (${_selectedTeacherId})',
+            'email': '',
+          });
+        }
+
+        // Ensure selected grade block exists in list
+        if (_selectedGradeBlockId != null &&
+            !_gradeBlocksList.any(
+              (b) => b['id'].toString() == _selectedGradeBlockId,
+            )) {
+          _gradeBlocksList.add({
+            'id': int.parse(_selectedGradeBlockId!),
+            'name': 'Khối (${_selectedGradeBlockId})',
+            'code': 'CUSTOM',
+            'description': '',
           });
         }
       });
@@ -63,6 +98,32 @@ class _ClassAddEditModalState extends State<ClassAddEditModal> {
     }
   }
 
+  // Remove duplicate teachers based on ID
+  List<Map<String, dynamic>> _removeDuplicateTeachers(
+    List<Map<String, dynamic>> teachers,
+  ) {
+    final uniqueTeachers = <int, Map<String, dynamic>>{};
+    for (var teacher in teachers) {
+      if (!uniqueTeachers.containsKey(teacher['id'])) {
+        uniqueTeachers[teacher['id']] = teacher;
+      }
+    }
+    return uniqueTeachers.values.toList();
+  }
+
+  // Remove duplicate grade blocks based on ID
+  List<Map<String, dynamic>> _removeDuplicateBlocks(
+    List<Map<String, dynamic>> blocks,
+  ) {
+    final uniqueBlocks = <int, Map<String, dynamic>>{};
+    for (var block in blocks) {
+      if (!uniqueBlocks.containsKey(block['id'])) {
+        uniqueBlocks[block['id']] = block;
+      }
+    }
+    return uniqueBlocks.values.toList();
+  }
+
   void _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -71,6 +132,10 @@ class _ClassAddEditModalState extends State<ClassAddEditModal> {
         'name': _nameController.text,
         'capacity': int.parse(_capacityController.text),
         'homeroom_teacher_id': _selectedTeacherId,
+        'grade_block_id':
+            _selectedGradeBlockId != null
+                ? int.parse(_selectedGradeBlockId!)
+                : null,
       };
 
       if (widget.existingClass == null) {
@@ -176,6 +241,41 @@ class _ClassAddEditModalState extends State<ClassAddEditModal> {
                           setState(() {
                             _selectedTeacherId = value;
                           });
+                        },
+                        validator: (value) {
+                          // Optional: Add validation if needed
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String?>(
+                        decoration: const InputDecoration(
+                          labelText: 'Khối học',
+                        ),
+                        hint: const Text('Chọn khối học'),
+                        value: _selectedGradeBlockId?.toString(),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Chưa chọn khối'),
+                          ),
+                          ..._gradeBlocksList.map((block) {
+                            return DropdownMenuItem<String?>(
+                              value: block['id'].toString(),
+                              child: Text(
+                                '${block['name']} (${block['code']})',
+                              ),
+                            );
+                          }),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedGradeBlockId = value;
+                          });
+                        },
+                        validator: (value) {
+                          // Optional: Add validation if needed
+                          return null;
                         },
                       ),
                     ],

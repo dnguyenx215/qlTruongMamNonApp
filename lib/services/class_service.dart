@@ -9,32 +9,52 @@ class ClassService {
   static final String baseUrl =
       dotenv.env['BASE_URL'] ?? 'http://127.0.0.1:8000/api';
 
-  /// Lấy thông tin của user từ ID
-  static Future<Map<String, dynamic>> fetchUserById(int userId) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? token = prefs.getString('token');
-
-    if (token == null) {
-      throw Exception("Token not found");
+  /// Lấy thông tin chi tiết của giáo viên chủ nhiệm
+  static Future<Map<String, dynamic>> _fetchTeacherDetails(
+    int? teacherId,
+  ) async {
+    if (teacherId == null) {
+      return {"id": null, "name": "Chưa có GVCN", "email": ""};
     }
 
-    final response = await http.get(
-      Uri.parse("$baseUrl/users/$userId"),
-      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
-    );
+    try {
+      final response = await http.get(
+        Uri.parse("$baseUrl/users/$teacherId"),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['data'] ?? {};
-    } else {
-      // Trả về empty map nếu không tìm thấy user, không throw exception
-      // để tránh ảnh hưởng đến luồng lấy danh sách lớp
-      return {};
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final userData = data['data'] ?? {};
+
+        return {
+          "id": userData['id'],
+          "name": userData['name'] ?? "Giáo viên không xác định",
+          "email": userData['email'] ?? "",
+        };
+      } else {
+        // Trả về thông tin mặc định nếu không tìm thấy giáo viên
+        return {
+          "id": teacherId,
+          "name": "Giáo viên (ID: $teacherId)",
+          "email": "",
+        };
+      }
+    } catch (e) {
+      // Xử lý lỗi mạng hoặc các lỗi khác
+      debugPrint("Lỗi khi lấy thông tin giáo viên: $e");
+      return {
+        "id": teacherId,
+        "name": "Giáo viên (ID: $teacherId)",
+        "email": "",
+      };
     }
   }
 
-  /// Gọi API lấy danh sách lớp theo user_id được lưu trong SharedPreferences.
-  /// URL API trong backend Laravel: /admin/classes với query param user_id
+  /// Gọi API lấy danh sách lớp
   static Future<List<Map<String, dynamic>>> fetchClasses() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? userDataString = prefs.getString('user');
@@ -67,20 +87,18 @@ class ClassService {
         String nameLop = (item["name"] ?? "").toString();
 
         // Xác định khối
-        String heLop = _determineGradeBlock(nameLop);
+        String heLop =
+            (item["grade_block_id"] ?? _determineGradeBlock(nameLop))
+                .toString();
 
         // Xác định tình trạng lớp
         String tinhTrang = (studentsCount >= capacity) ? "FULL" : "INCOMPLETE";
 
         // Xử lý thông tin giáo viên chủ nhiệm
-        final homeroomTeacher = item["homeroom_teacher"];
-        String gvcnInfo = "Chưa có GVCN";
-        int? gvcnId;
-
-        if (homeroomTeacher != null) {
-          gvcnId = homeroomTeacher['id'];
-          gvcnInfo = homeroomTeacher['name'] ?? "Chưa có tên";
-        }
+        final int? homeroomTeacherId = item["homeroom_teacher_id"];
+        Map<String, dynamic> gvcnInfo = await _fetchTeacherDetails(
+          homeroomTeacherId,
+        );
 
         processedClasses.add({
           "checked": false,
@@ -88,8 +106,9 @@ class ClassService {
           "maLop": "L${item["id"]}",
           "tenLop": item["name"] ?? "Chưa rõ",
           "heLop": heLop,
-          "gvcn": gvcnInfo,
-          "gvcnId": gvcnId,
+          "gvcn": gvcnInfo["name"] ?? "Chưa có GVCN",
+          "gvcnId": gvcnInfo["id"],
+          "gvcnEmail": gvcnInfo["email"],
           "doTuoi": "", // Nếu API không có, có thể để trống
           "siSo": "$studentsCount/$capacity",
           "capacity": capacity,
@@ -107,12 +126,11 @@ class ClassService {
     }
   }
 
-  /// Xác định khối học dựa trên tên lớp
   static String _determineGradeBlock(String nameLop) {
     nameLop = nameLop.toLowerCase();
-    if (nameLop.contains("nhà trẻ")) {
+    if (nameLop.contains("nhà trẻ") || nameLop.contains("NT")) {
       return "Nhà trẻ";
-    } else if (nameLop.contains("mẫu giáo")) {
+    } else if (nameLop.contains("mẫu giáo") || nameLop.contains("MG")) {
       return "Mẫu giáo";
     }
     return "Khác";
