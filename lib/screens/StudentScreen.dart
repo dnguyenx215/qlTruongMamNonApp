@@ -9,7 +9,7 @@ import '../services/student_service.dart';
 import '../widgets/ManagementLayout.dart';
 
 class StudentScreen extends StatefulWidget {
-  const StudentScreen({Key? key}) : super(key: key);
+  const StudentScreen({super.key});
 
   @override
   _StudentScreenState createState() => _StudentScreenState();

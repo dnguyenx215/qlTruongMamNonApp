@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/ManagementLayout.dart';
 
 class GradeScreen extends StatefulWidget {
-  const GradeScreen({Key? key}) : super(key: key);
+  const GradeScreen({super.key});
 
   @override
   _GradeScreenState createState() => _GradeScreenState();

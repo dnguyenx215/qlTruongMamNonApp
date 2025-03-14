@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class TuitionTrackingComponent extends StatelessWidget {
-  const TuitionTrackingComponent({Key? key}) : super(key: key);
+  const TuitionTrackingComponent({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -78,8 +78,7 @@ class TuitionCard extends StatelessWidget {
   final String className;
   final String stats;
 
-  const TuitionCard({Key? key, required this.className, required this.stats})
-    : super(key: key);
+  const TuitionCard({super.key, required this.className, required this.stats});
 
   @override
   Widget build(BuildContext context) {

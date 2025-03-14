@@ -5,10 +5,10 @@ class NotificationsComponent extends StatelessWidget {
   final Function(String) onFilterChanged;
 
   const NotificationsComponent({
-    Key? key,
+    super.key,
     required this.activeFilter,
     required this.onFilterChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

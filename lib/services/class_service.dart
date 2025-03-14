@@ -34,7 +34,7 @@ class ClassService {
   }
 
   /// Gọi API lấy danh sách lớp theo user_id được lưu trong SharedPreferences.
-  /// Nếu thành công, trả về List<Map<String, dynamic>> đã map dữ liệu phù hợp.
+  /// URL API trong backend Laravel: /admin/classes với query param user_id
   static Future<List<Map<String, dynamic>>> fetchClasses() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? userDataString = prefs.getString('user');
@@ -114,17 +114,22 @@ class ClassService {
           "doTuoi": "", // Nếu API không có, có thể để trống
           "siSo": "$studentsCount/$capacity",
           "capacity": capacity,
+          "students_count": studentsCount,
           "tinhTrang": tinhTrang,
+          "grade_block_id": item["grade_block_id"],
         });
       }
 
       return processedClasses;
     } else {
-      throw Exception('Failed to load classes, status: ${response.statusCode}');
+      throw Exception(
+        'Failed to load classes, status: ${response.statusCode}, message: ${response.body}',
+      );
     }
   }
 
   /// Thêm mới một lớp học
+  /// URL API trong backend Laravel: POST /admin/classes
   static Future<void> addClass(Map<String, dynamic> classData) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? userDataString = prefs.getString('user');
@@ -156,6 +161,7 @@ class ClassService {
   }
 
   /// Cập nhật thông tin lớp học
+  /// URL API trong backend Laravel: PUT /admin/classes/{id}
   static Future<void> updateClass(
     int classId,
     Map<String, dynamic> classData,
@@ -190,6 +196,7 @@ class ClassService {
   }
 
   /// Xóa một lớp học
+  /// URL API trong backend Laravel: DELETE /admin/classes/{id}
   static Future<void> deleteClass(int classId) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? userDataString = prefs.getString('user');
@@ -217,6 +224,7 @@ class ClassService {
   }
 
   /// Lấy danh sách giáo viên
+  /// URL API có thể là /users?role=teacher
   static Future<List<Map<String, dynamic>>> fetchTeachers() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
@@ -243,6 +251,46 @@ class ClassService {
       }).toList();
     } else {
       throw Exception('Failed to load teachers: ${response.statusCode}');
+    }
+  }
+
+  /// Lấy danh sách khối học
+  /// URL API: /grade-blocks
+  static Future<List<Map<String, dynamic>>> fetchGradeBlocks() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+    String? userDataString = prefs.getString('user');
+
+    if (token == null) {
+      throw Exception("Token not found");
+    }
+
+    if (userDataString == null) {
+      throw Exception("User data not found");
+    }
+
+    final userData = jsonDecode(userDataString);
+    final userId = userData['id'];
+
+    final response = await http.get(
+      Uri.parse("$baseUrl/grade-blocks?user_id=$userId"),
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final List<dynamic> blocks = data['data'] ?? [];
+
+      return blocks.map<Map<String, dynamic>>((item) {
+        return {
+          "id": item['id'],
+          "code": item['code'] ?? "",
+          "name": item['name'] ?? "Chưa có tên",
+          "description": item['description'] ?? "",
+        };
+      }).toList();
+    } else {
+      throw Exception('Failed to load grade blocks: ${response.statusCode}');
     }
   }
 }

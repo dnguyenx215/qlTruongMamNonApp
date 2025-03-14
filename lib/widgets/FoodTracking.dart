@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class FoodTrackingComponent extends StatelessWidget {
-  const FoodTrackingComponent({Key? key}) : super(key: key);
+  const FoodTrackingComponent({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -77,11 +77,11 @@ class ClassFoodCard extends StatelessWidget {
   final String date;
 
   const ClassFoodCard({
-    Key? key,
+    super.key,
     required this.className,
     required this.teacherName,
     required this.date,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

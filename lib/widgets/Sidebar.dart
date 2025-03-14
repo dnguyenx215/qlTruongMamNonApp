@@ -7,10 +7,10 @@ class SidebarComponent extends StatelessWidget {
 
 
   const SidebarComponent({
-    Key? key,
+    super.key,
     required this.selectedRoute,
     required this.onRouteSelected,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

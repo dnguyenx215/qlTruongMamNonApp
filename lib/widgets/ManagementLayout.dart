@@ -12,7 +12,7 @@ class ManagementLayout extends StatelessWidget {
   final String userRole;
 
   const ManagementLayout({
-    Key? key,
+    super.key,
     required this.selectedRoute,
     required this.mainContent,
     required this.onRouteSelected,
@@ -20,7 +20,7 @@ class ManagementLayout extends StatelessWidget {
     required this.userName,
     required this.userRole,
     this.onSendNotification,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

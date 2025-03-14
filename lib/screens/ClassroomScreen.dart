@@ -5,7 +5,7 @@ import '../services/class_service.dart';
 import '../widgets/ManagementLayout.dart';
 
 class ClassroomScreen extends StatefulWidget {
-  const ClassroomScreen({Key? key}) : super(key: key);
+  const ClassroomScreen({super.key});
 
   @override
   _ClassroomScreenState createState() => _ClassroomScreenState();
@@ -98,26 +98,25 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
 
   // ============= MODAL THÊM LỚP =============
   Future<void> _showAddClassModal(BuildContext context) async {
-    final _formKey = GlobalKey<FormState>();
-    final _nameController = TextEditingController();
-    final _capacityController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController();
+    final capacityController = TextEditingController();
 
     // Mặc định là TextFormField cho GVCN
-    bool _useDropdown = false;
-    final _teacherIdController = TextEditingController();
-    int? _selectedTeacherId;
+    bool useDropdown = false;
+    final teacherIdController = TextEditingController();
+    int? selectedTeacherId;
 
-    List<Map<String, dynamic>> _teachersList = [];
-    bool _loadingTeachers = true;
+    List<Map<String, dynamic>> teachersList = [];
+    bool loadingTeachers = true;
 
     try {
-      _teachersList = await ClassService.fetchTeachers();
-      _useDropdown =
-          _teachersList.isNotEmpty; // Chỉ dùng dropdown nếu có dữ liệu
-      _loadingTeachers = false;
+      teachersList = await ClassService.fetchTeachers();
+      useDropdown = teachersList.isNotEmpty; // Chỉ dùng dropdown nếu có dữ liệu
+      loadingTeachers = false;
     } catch (e) {
-      _loadingTeachers = false;
-      _useDropdown = false; // Dùng TextField khi có lỗi
+      loadingTeachers = false;
+      useDropdown = false; // Dùng TextField khi có lỗi
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -137,12 +136,12 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
               title: const Text('Thêm lớp mới'),
               content: SingleChildScrollView(
                 child: Form(
-                  key: _formKey,
+                  key: formKey,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       TextFormField(
-                        controller: _nameController,
+                        controller: nameController,
                         decoration: const InputDecoration(
                           labelText: 'Tên lớp',
                           hintText: 'Ví dụ: Nhà trẻ 24-36 tháng CLC',
@@ -156,7 +155,7 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
-                        controller: _capacityController,
+                        controller: capacityController,
                         decoration: const InputDecoration(
                           labelText: 'Sĩ số tối đa',
                           hintText: 'Ví dụ: 25',
@@ -173,37 +172,37 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      _loadingTeachers
+                      loadingTeachers
                           ? const Center(child: CircularProgressIndicator())
-                          : _useDropdown
+                          : useDropdown
                           ? DropdownButtonFormField<int?>(
                             decoration: const InputDecoration(
                               labelText: 'Giáo viên chủ nhiệm',
                             ),
                             hint: const Text('Chọn giáo viên chủ nhiệm'),
-                            value: _selectedTeacherId,
+                            value: selectedTeacherId,
                             items: [
                               const DropdownMenuItem<int?>(
                                 value: null,
                                 child: Text('Không có GVCN'),
                               ),
-                              ..._teachersList.map((teacher) {
+                              ...teachersList.map((teacher) {
                                 return DropdownMenuItem<int?>(
                                   value: teacher['id'],
                                   child: Text(
                                     '${teacher['name']} (ID: ${teacher['id']})',
                                   ),
                                 );
-                              }).toList(),
+                              }),
                             ],
                             onChanged: (value) {
                               setState(() {
-                                _selectedTeacherId = value;
+                                selectedTeacherId = value;
                               });
                             },
                           )
                           : TextFormField(
-                            controller: _teacherIdController,
+                            controller: teacherIdController,
                             decoration: const InputDecoration(
                               labelText: 'ID Giáo viên chủ nhiệm',
                               hintText: 'Để trống nếu không có GVCN',
@@ -223,22 +222,22 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    if (_formKey.currentState!.validate()) {
+                    if (formKey.currentState!.validate()) {
                       // Xử lý ID giáo viên tùy theo loại input
                       int? teacherId;
-                      if (_useDropdown) {
-                        teacherId = _selectedTeacherId;
+                      if (useDropdown) {
+                        teacherId = selectedTeacherId;
                       } else {
                         teacherId =
-                            _teacherIdController.text.isNotEmpty
-                                ? int.tryParse(_teacherIdController.text)
+                            teacherIdController.text.isNotEmpty
+                                ? int.tryParse(teacherIdController.text)
                                 : null;
                       }
 
                       // Process data and add class
                       final newClass = {
-                        "name": _nameController.text,
-                        "capacity": int.parse(_capacityController.text),
+                        "name": nameController.text,
+                        "capacity": int.parse(capacityController.text),
                         "homeroom_teacher_id": teacherId,
                       };
 
@@ -282,51 +281,51 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
     BuildContext context,
     Map<String, dynamic> classData,
   ) async {
-    final _formKey = GlobalKey<FormState>();
-    final _nameController = TextEditingController(text: classData['tenLop']);
-    final _capacityController = TextEditingController(
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController(text: classData['tenLop']);
+    final capacityController = TextEditingController(
       text: classData['capacity'].toString(),
     );
 
     // Mặc định là TextFormField cho GVCN
-    bool _useDropdown = false;
-    final _teacherIdController = TextEditingController(
+    bool useDropdown = false;
+    final teacherIdController = TextEditingController(
       text: classData['gvcnId']?.toString() ?? '',
     );
-    int? _selectedTeacherId = classData['gvcnId'];
+    int? selectedTeacherId = classData['gvcnId'];
 
-    List<Map<String, dynamic>> _teachersList = [];
-    bool _loadingTeachers = true;
+    List<Map<String, dynamic>> teachersList = [];
+    bool loadingTeachers = true;
 
     try {
-      _teachersList = await ClassService.fetchTeachers();
+      teachersList = await ClassService.fetchTeachers();
 
       // Kiểm tra nếu _selectedTeacherId có tồn tại trong danh sách không
       bool teacherExists =
-          _selectedTeacherId == null
+          selectedTeacherId == null
               ? true
-              : _teachersList.any(
-                (teacher) => teacher['id'] == _selectedTeacherId,
+              : teachersList.any(
+                (teacher) => teacher['id'] == selectedTeacherId,
               );
 
       // Chỉ dùng dropdown nếu có dữ liệu và ID giáo viên hợp lệ
-      _useDropdown = _teachersList.isNotEmpty && teacherExists;
+      useDropdown = teachersList.isNotEmpty && teacherExists;
 
-      if (!teacherExists && _selectedTeacherId != null) {
+      if (!teacherExists && selectedTeacherId != null) {
         // Thêm giáo viên hiện tại vào danh sách nếu không tìm thấy trong API
-        _teachersList.add({
-          "id": _selectedTeacherId,
+        teachersList.add({
+          "id": selectedTeacherId,
           "name": classData['gvcn'].toString().replaceAll(
-            " (ID: ${_selectedTeacherId})",
+            " (ID: $selectedTeacherId)",
             "",
           ),
         });
       }
 
-      _loadingTeachers = false;
+      loadingTeachers = false;
     } catch (e) {
-      _loadingTeachers = false;
-      _useDropdown = false; // Dùng TextField khi có lỗi
+      loadingTeachers = false;
+      useDropdown = false; // Dùng TextField khi có lỗi
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -346,12 +345,12 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
               title: Text('Sửa lớp ${classData['tenLop']}'),
               content: SingleChildScrollView(
                 child: Form(
-                  key: _formKey,
+                  key: formKey,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       TextFormField(
-                        controller: _nameController,
+                        controller: nameController,
                         decoration: const InputDecoration(labelText: 'Tên lớp'),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -362,7 +361,7 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
-                        controller: _capacityController,
+                        controller: capacityController,
                         decoration: const InputDecoration(
                           labelText: 'Sĩ số tối đa',
                         ),
@@ -378,37 +377,37 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      _loadingTeachers
+                      loadingTeachers
                           ? const Center(child: CircularProgressIndicator())
-                          : _useDropdown
+                          : useDropdown
                           ? DropdownButtonFormField<int?>(
                             decoration: const InputDecoration(
                               labelText: 'Giáo viên chủ nhiệm',
                             ),
                             hint: const Text('Chọn giáo viên chủ nhiệm'),
-                            value: _selectedTeacherId,
+                            value: selectedTeacherId,
                             items: [
                               const DropdownMenuItem<int?>(
                                 value: null,
                                 child: Text('Không có GVCN'),
                               ),
-                              ..._teachersList.map((teacher) {
+                              ...teachersList.map((teacher) {
                                 return DropdownMenuItem<int?>(
                                   value: teacher['id'],
                                   child: Text(
                                     '${teacher['name']} (ID: ${teacher['id']})',
                                   ),
                                 );
-                              }).toList(),
+                              }),
                             ],
                             onChanged: (value) {
                               setState(() {
-                                _selectedTeacherId = value;
+                                selectedTeacherId = value;
                               });
                             },
                           )
                           : TextFormField(
-                            controller: _teacherIdController,
+                            controller: teacherIdController,
                             decoration: const InputDecoration(
                               labelText: 'ID Giáo viên chủ nhiệm',
                               hintText: 'Để trống nếu không có GVCN',
@@ -428,22 +427,22 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    if (_formKey.currentState!.validate()) {
+                    if (formKey.currentState!.validate()) {
                       // Xử lý ID giáo viên tùy theo loại input
                       int? teacherId;
-                      if (_useDropdown) {
-                        teacherId = _selectedTeacherId;
+                      if (useDropdown) {
+                        teacherId = selectedTeacherId;
                       } else {
                         teacherId =
-                            _teacherIdController.text.isNotEmpty
-                                ? int.tryParse(_teacherIdController.text)
+                            teacherIdController.text.isNotEmpty
+                                ? int.tryParse(teacherIdController.text)
                                 : null;
                       }
 
                       // Process data and update class
                       final updatedClass = {
-                        "name": _nameController.text,
-                        "capacity": int.parse(_capacityController.text),
+                        "name": nameController.text,
+                        "capacity": int.parse(capacityController.text),
                         "homeroom_teacher_id": teacherId,
                       };
 

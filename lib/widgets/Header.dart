@@ -6,11 +6,11 @@ class HeaderComponent extends StatelessWidget {
   final VoidCallback onSendNotification;
 
   const HeaderComponent({
-    Key? key,
+    super.key,
     required this.userName,
     required this.userRole,
     required this.onSendNotification,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
