@@ -1,8 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../services/class_service.dart';
 import '../widgets/ManagementLayout.dart';
+import '../widgets/classroom/ClassAddEditModal.dart';
+import '../widgets/classroom/ClassDeleteModal.dart';
+import '../widgets/classroom/ClassDetailModal.dart';
 
 class ClassroomScreen extends StatefulWidget {
   const ClassroomScreen({super.key});
@@ -21,7 +25,7 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
   String _selectedYear = '2023-2024';
   final List<String> _yearOptions = ['2023-2024', '2024-2025', '2025-2026'];
 
-  // Danh sách lớp lấy từ API, mỗi item bổ sung 'checked' để checkbox
+  // Danh sách lớp lấy từ API
   List<Map<String, dynamic>> _classList = [];
 
   @override
@@ -31,7 +35,7 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
     _fetchClasses();
   }
 
-  /// Lấy thông tin user (để hiển thị trên header)
+  /// Lấy thông tin user
   Future<void> _loadUser() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? userDataString = prefs.getString('user');
@@ -49,7 +53,6 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
         });
       }
     } else {
-      // Nếu chưa có trong SharedPreferences thì gán tạm
       setState(() {
         _userName = 'VUONG THI MAI';
         _userRole = 'QL';
@@ -62,7 +65,6 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // ClassService.fetchClasses() trả về List<Map<String, dynamic>>
       List<Map<String, dynamic>> classList = await ClassService.fetchClasses();
 
       setState(() {
@@ -96,570 +98,37 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
     }).toList();
   }
 
-  // ============= MODAL THÊM LỚP =============
-  Future<void> _showAddClassModal(BuildContext context) async {
-    final formKey = GlobalKey<FormState>();
-    final nameController = TextEditingController();
-    final capacityController = TextEditingController();
-
-    // Mặc định là TextFormField cho GVCN
-    bool useDropdown = false;
-    final teacherIdController = TextEditingController();
-    int? selectedTeacherId;
-
-    List<Map<String, dynamic>> teachersList = [];
-    bool loadingTeachers = true;
-
-    try {
-      teachersList = await ClassService.fetchTeachers();
-      useDropdown = teachersList.isNotEmpty; // Chỉ dùng dropdown nếu có dữ liệu
-      loadingTeachers = false;
-    } catch (e) {
-      loadingTeachers = false;
-      useDropdown = false; // Dùng TextField khi có lỗi
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Không thể tải danh sách giáo viên: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-
-    return showDialog(
+  // Hiển thị modal thêm/sửa lớp
+  void _showAddEditModal([Map<String, dynamic>? existingClass]) {
+    showDialog(
       context: context,
       builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Thêm lớp mới'),
-              content: SingleChildScrollView(
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextFormField(
-                        controller: nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Tên lớp',
-                          hintText: 'Ví dụ: Nhà trẻ 24-36 tháng CLC',
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Vui lòng nhập tên lớp';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: capacityController,
-                        decoration: const InputDecoration(
-                          labelText: 'Sĩ số tối đa',
-                          hintText: 'Ví dụ: 25',
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Vui lòng nhập sĩ số';
-                          }
-                          if (int.tryParse(value) == null) {
-                            return 'Sĩ số phải là số';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      loadingTeachers
-                          ? const Center(child: CircularProgressIndicator())
-                          : useDropdown
-                          ? DropdownButtonFormField<int?>(
-                            decoration: const InputDecoration(
-                              labelText: 'Giáo viên chủ nhiệm',
-                            ),
-                            hint: const Text('Chọn giáo viên chủ nhiệm'),
-                            value: selectedTeacherId,
-                            items: [
-                              const DropdownMenuItem<int?>(
-                                value: null,
-                                child: Text('Không có GVCN'),
-                              ),
-                              ...teachersList.map((teacher) {
-                                return DropdownMenuItem<int?>(
-                                  value: teacher['id'],
-                                  child: Text(
-                                    '${teacher['name']} (ID: ${teacher['id']})',
-                                  ),
-                                );
-                              }),
-                            ],
-                            onChanged: (value) {
-                              setState(() {
-                                selectedTeacherId = value;
-                              });
-                            },
-                          )
-                          : TextFormField(
-                            controller: teacherIdController,
-                            decoration: const InputDecoration(
-                              labelText: 'ID Giáo viên chủ nhiệm',
-                              hintText: 'Để trống nếu không có GVCN',
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Hủy'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    if (formKey.currentState!.validate()) {
-                      // Xử lý ID giáo viên tùy theo loại input
-                      int? teacherId;
-                      if (useDropdown) {
-                        teacherId = selectedTeacherId;
-                      } else {
-                        teacherId =
-                            teacherIdController.text.isNotEmpty
-                                ? int.tryParse(teacherIdController.text)
-                                : null;
-                      }
-
-                      // Process data and add class
-                      final newClass = {
-                        "name": nameController.text,
-                        "capacity": int.parse(capacityController.text),
-                        "homeroom_teacher_id": teacherId,
-                      };
-
-                      // Call API through service
-                      ClassService.addClass(newClass)
-                          .then((_) {
-                            Navigator.of(context).pop();
-                            // Show success message
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Thêm lớp thành công'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                            // Refresh class list
-                            _fetchClasses();
-                          })
-                          .catchError((error) {
-                            // Show error message
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Lỗi: ${error.toString()}'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          });
-                    }
-                  },
-                  child: const Text('Lưu'),
-                ),
-              ],
-            );
-          },
+        return ClassAddEditModal(
+          existingClass: existingClass,
+          onRefresh: _fetchClasses,
         );
       },
     );
   }
 
-  // ============= MODAL SỬA LỚP =============
-  Future<void> _showEditClassModal(
-    BuildContext context,
-    Map<String, dynamic> classData,
-  ) async {
-    final formKey = GlobalKey<FormState>();
-    final nameController = TextEditingController(text: classData['tenLop']);
-    final capacityController = TextEditingController(
-      text: classData['capacity'].toString(),
-    );
-
-    // Mặc định là TextFormField cho GVCN
-    bool useDropdown = false;
-    final teacherIdController = TextEditingController(
-      text: classData['gvcnId']?.toString() ?? '',
-    );
-    int? selectedTeacherId = classData['gvcnId'];
-
-    List<Map<String, dynamic>> teachersList = [];
-    bool loadingTeachers = true;
-
-    try {
-      teachersList = await ClassService.fetchTeachers();
-
-      // Kiểm tra nếu _selectedTeacherId có tồn tại trong danh sách không
-      bool teacherExists =
-          selectedTeacherId == null
-              ? true
-              : teachersList.any(
-                (teacher) => teacher['id'] == selectedTeacherId,
-              );
-
-      // Chỉ dùng dropdown nếu có dữ liệu và ID giáo viên hợp lệ
-      useDropdown = teachersList.isNotEmpty && teacherExists;
-
-      if (!teacherExists && selectedTeacherId != null) {
-        // Thêm giáo viên hiện tại vào danh sách nếu không tìm thấy trong API
-        teachersList.add({
-          "id": selectedTeacherId,
-          "name": classData['gvcn'].toString().replaceAll(
-            " (ID: $selectedTeacherId)",
-            "",
-          ),
-        });
-      }
-
-      loadingTeachers = false;
-    } catch (e) {
-      loadingTeachers = false;
-      useDropdown = false; // Dùng TextField khi có lỗi
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Không thể tải danh sách giáo viên: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-
-    return showDialog(
+  // Hiển thị modal xóa lớp
+  void _showDeleteModal(Map<String, dynamic> classData) {
+    showDialog(
       context: context,
       builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Text('Sửa lớp ${classData['tenLop']}'),
-              content: SingleChildScrollView(
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextFormField(
-                        controller: nameController,
-                        decoration: const InputDecoration(labelText: 'Tên lớp'),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Vui lòng nhập tên lớp';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: capacityController,
-                        decoration: const InputDecoration(
-                          labelText: 'Sĩ số tối đa',
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Vui lòng nhập sĩ số';
-                          }
-                          if (int.tryParse(value) == null) {
-                            return 'Sĩ số phải là số';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      loadingTeachers
-                          ? const Center(child: CircularProgressIndicator())
-                          : useDropdown
-                          ? DropdownButtonFormField<int?>(
-                            decoration: const InputDecoration(
-                              labelText: 'Giáo viên chủ nhiệm',
-                            ),
-                            hint: const Text('Chọn giáo viên chủ nhiệm'),
-                            value: selectedTeacherId,
-                            items: [
-                              const DropdownMenuItem<int?>(
-                                value: null,
-                                child: Text('Không có GVCN'),
-                              ),
-                              ...teachersList.map((teacher) {
-                                return DropdownMenuItem<int?>(
-                                  value: teacher['id'],
-                                  child: Text(
-                                    '${teacher['name']} (ID: ${teacher['id']})',
-                                  ),
-                                );
-                              }),
-                            ],
-                            onChanged: (value) {
-                              setState(() {
-                                selectedTeacherId = value;
-                              });
-                            },
-                          )
-                          : TextFormField(
-                            controller: teacherIdController,
-                            decoration: const InputDecoration(
-                              labelText: 'ID Giáo viên chủ nhiệm',
-                              hintText: 'Để trống nếu không có GVCN',
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Hủy'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    if (formKey.currentState!.validate()) {
-                      // Xử lý ID giáo viên tùy theo loại input
-                      int? teacherId;
-                      if (useDropdown) {
-                        teacherId = selectedTeacherId;
-                      } else {
-                        teacherId =
-                            teacherIdController.text.isNotEmpty
-                                ? int.tryParse(teacherIdController.text)
-                                : null;
-                      }
-
-                      // Process data and update class
-                      final updatedClass = {
-                        "name": nameController.text,
-                        "capacity": int.parse(capacityController.text),
-                        "homeroom_teacher_id": teacherId,
-                      };
-
-                      // Call API through service
-                      ClassService.updateClass(classData['id'], updatedClass)
-                          .then((_) {
-                            Navigator.of(context).pop();
-                            // Show success message
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Cập nhật lớp thành công'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                            // Refresh class list
-                            _fetchClasses();
-                          })
-                          .catchError((error) {
-                            // Show error message
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Lỗi: ${error.toString()}'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          });
-                    }
-                  },
-                  child: const Text('Lưu'),
-                ),
-              ],
-            );
-          },
-        );
+        return ClassDeleteModal(classData: classData, onRefresh: _fetchClasses);
       },
     );
   }
 
-  // ============= MODAL XÓA LỚP =============
-  Future<void> _showDeleteConfirmationModal(
-    BuildContext context,
-    Map<String, dynamic> classData,
-  ) {
-    return showDialog(
+  // Hiển thị modal chi tiết lớp
+  void _showClassDetailModal(Map<String, dynamic> classData) {
+    showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Xác nhận xóa'),
-          content: Text(
-            'Bạn có chắc chắn muốn xóa lớp "${classData['tenLop']}" không? '
-            'Hành động này không thể hoàn tác và sẽ xóa tất cả dữ liệu liên quan đến lớp này.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Hủy'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                // Call API through service
-                ClassService.deleteClass(classData['id'])
-                    .then((_) {
-                      Navigator.of(context).pop();
-                      // Show success message
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Xóa lớp thành công'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                      // Refresh class list
-                      _fetchClasses();
-                    })
-                    .catchError((error) {
-                      // Show error message
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Lỗi: ${error.toString()}'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    });
-              },
-              child: const Text('Xóa'),
-            ),
-          ],
-        );
+        return ClassDetailModal(classData: classData);
       },
     );
-  }
-
-  // ============= MODAL XEM CHI TIẾT LỚP =============
-  Future<void> _showClassDetailModal(
-    BuildContext context,
-    Map<String, dynamic> classData,
-  ) {
-    return showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Chi tiết lớp ${classData['tenLop']}'),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildDetailRow('Mã lớp:', classData['maLop']),
-                _buildDetailRow('Tên lớp:', classData['tenLop']),
-                _buildDetailRow('Khối:', classData['heLop']),
-                _buildDetailRow('Giáo viên chủ nhiệm:', classData['gvcn']),
-                _buildDetailRow('Sĩ số:', classData['siSo']),
-                _buildDetailRow('Tình trạng:', classData['tinhTrang']),
-              ],
-            ),
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Đóng'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // Widget hiển thị một dòng trong chi tiết lớp
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 150,
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          Expanded(child: Text(value)),
-        ],
-      ),
-    );
-  }
-
-  // Ví dụ hàm xử lý khi bấm các nút (đã cập nhật để gọi các modal)
-  void _themMoi() {
-    _showAddClassModal(context);
-  }
-
-  void _sua() {
-    // Check if any class is selected
-    final selectedClass = _filteredClassList.firstWhere(
-      (item) => item["checked"] == true,
-      orElse: () => {},
-    );
-
-    if (selectedClass.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng chọn một lớp để sửa'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    _showEditClassModal(context, selectedClass);
-  }
-
-  void _xoa() {
-    // Check if any class is selected
-    final selectedClass = _filteredClassList.firstWhere(
-      (item) => item["checked"] == true,
-      orElse: () => {},
-    );
-
-    if (selectedClass.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng chọn một lớp để xóa'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    _showDeleteConfirmationModal(context, selectedClass);
-  }
-
-  void _xemChiTiet() {
-    // Check if any class is selected
-    final selectedClass = _filteredClassList.firstWhere(
-      (item) => item["checked"] == true,
-      orElse: () => {},
-    );
-
-    if (selectedClass.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng chọn một lớp để xem chi tiết'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    _showClassDetailModal(context, selectedClass);
   }
 
   // Bảng hiển thị danh sách lớp
@@ -757,6 +226,66 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
     );
   }
 
+  // Xử lý các nút chức năng
+  void _themMoi() => _showAddEditModal();
+
+  void _sua() {
+    final selectedClass = _filteredClassList.firstWhere(
+      (item) => item["checked"] == true,
+      orElse: () => {},
+    );
+
+    if (selectedClass.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng chọn một lớp để sửa'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    _showAddEditModal(selectedClass);
+  }
+
+  void _xoa() {
+    final selectedClass = _filteredClassList.firstWhere(
+      (item) => item["checked"] == true,
+      orElse: () => {},
+    );
+
+    if (selectedClass.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng chọn một lớp để xóa'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    _showDeleteModal(selectedClass);
+  }
+
+  void _xemChiTiet() {
+    final selectedClass = _filteredClassList.firstWhere(
+      (item) => item["checked"] == true,
+      orElse: () => {},
+    );
+
+    if (selectedClass.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng chọn một lớp để xem chi tiết'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    _showClassDetailModal(selectedClass);
+  }
+
   @override
   Widget build(BuildContext context) {
     return ManagementLayout(
@@ -810,7 +339,7 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
                         }).toList(),
                     onChanged: (val) {
                       setState(() => _selectedYear = val ?? _selectedYear);
-                      // Gọi API hoặc lọc lại dữ liệu nếu cần
+                      // TODO: Gọi API hoặc lọc lại dữ liệu nếu cần
                     },
                   ),
 

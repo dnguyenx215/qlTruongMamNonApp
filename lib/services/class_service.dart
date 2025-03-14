@@ -47,18 +47,6 @@ class ClassService {
     final userData = jsonDecode(userDataString);
     final userId = userData['id'];
 
-    // Lấy danh sách giáo viên trước để có thể ánh xạ ID -> tên
-    Map<int, String> teacherNames = {};
-    try {
-      List<Map<String, dynamic>> teachers = await fetchTeachers();
-      for (var teacher in teachers) {
-        teacherNames[teacher['id']] = teacher['name'];
-      }
-    } catch (e) {
-      debugPrint("Không thể lấy danh sách giáo viên: $e");
-      // Tiếp tục xử lý, không dừng luồng
-    }
-
     // URL API lấy danh sách lớp
     final String apiUrl = "$baseUrl/admin/classes?user_id=$userId";
 
@@ -78,29 +66,20 @@ class ClassService {
         final int capacity = item["capacity"] ?? 0;
         String nameLop = (item["name"] ?? "").toString();
 
-        String heLop;
-        if (nameLop.toLowerCase().contains("nhà trẻ")) {
-          heLop = "Nhà trẻ";
-        } else if (nameLop.toLowerCase().contains("mẫu giáo")) {
-          heLop = "Mẫu giáo";
-        } else {
-          heLop = "Khác";
-        }
+        // Xác định khối
+        String heLop = _determineGradeBlock(nameLop);
 
+        // Xác định tình trạng lớp
         String tinhTrang = (studentsCount >= capacity) ? "FULL" : "INCOMPLETE";
 
-        // Lấy tên giáo viên từ ID
+        // Xử lý thông tin giáo viên chủ nhiệm
+        final homeroomTeacher = item["homeroom_teacher"];
         String gvcnInfo = "Chưa có GVCN";
-        int? gvcnId = item["homeroom_teacher_id"];
+        int? gvcnId;
 
-        if (gvcnId != null) {
-          // Ưu tiên lấy từ danh sách teacherNames đã tải
-          if (teacherNames.containsKey(gvcnId)) {
-            gvcnInfo = teacherNames[gvcnId]!;
-          } else {
-            // Nếu không có trong danh sách, hiển thị thông tin ID
-            gvcnInfo = "GVCN ID: $gvcnId";
-          }
+        if (homeroomTeacher != null) {
+          gvcnId = homeroomTeacher['id'];
+          gvcnInfo = homeroomTeacher['name'] ?? "Chưa có tên";
         }
 
         processedClasses.add({
@@ -126,6 +105,17 @@ class ClassService {
         'Failed to load classes, status: ${response.statusCode}, message: ${response.body}',
       );
     }
+  }
+
+  /// Xác định khối học dựa trên tên lớp
+  static String _determineGradeBlock(String nameLop) {
+    nameLop = nameLop.toLowerCase();
+    if (nameLop.contains("nhà trẻ")) {
+      return "Nhà trẻ";
+    } else if (nameLop.contains("mẫu giáo")) {
+      return "Mẫu giáo";
+    }
+    return "Khác";
   }
 
   /// Thêm mới một lớp học
