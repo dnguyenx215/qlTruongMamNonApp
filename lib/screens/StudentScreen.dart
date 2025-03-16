@@ -51,7 +51,7 @@ class _StudentScreenState extends State<StudentScreen> {
         final userData = jsonDecode(userDataString);
         setState(() {
           _userName = userData['name'] ?? 'Người dùng';
-          _userRole = userData['role'] ?? 'Quản lý';
+          _userRole = userData['roles'][0]['display_name'] ?? 'Quản lý';
         });
       } catch (e) {
         setState(() {

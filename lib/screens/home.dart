@@ -23,6 +23,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _userName = '';
   String _userRole = '';
+  String _userRoleDisplay = '';
   String _selectedRoute = 'home';
   String _activeNotificationFilter = 'today';
 
@@ -39,9 +40,12 @@ class _HomeScreenState extends State<HomeScreen> {
     if (userDataString != null) {
       try {
         final userData = jsonDecode(userDataString);
+        final userRoles = userData['roles'];
+        var userRole = userRoles[0];
         setState(() {
           _userName = userData['name'] ?? 'Người dùng';
-          _userRole = userData['role'] ?? 'Quản lý';
+          _userRole = userRole['name'] ?? 'Chưa xác định';
+          _userRoleDisplay = userRole['display_name'] ?? 'Chưa xác định';
         });
       } catch (e) {
         setState(() {
@@ -105,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // Header with user info
           HeaderComponent(
             userName: _userName,
-            userRole: _userRole,
+            userRole: _userRoleDisplay,
             onSendNotification: _handleSendNotification,
           ),
           const SizedBox(height: 24),
