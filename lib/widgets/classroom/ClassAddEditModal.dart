@@ -65,7 +65,9 @@ class _ClassAddEditModalState extends State<ClassAddEditModal> {
 
         // Ensure selected teacher exists in list
         if (_selectedTeacherId != null &&
-            !_teachersList.any((t) => t['id'] == _selectedTeacherId)) {
+            !_teachersList.any(
+              (teacher) => teacher['id'] == _selectedTeacherId,
+            )) {
           _teachersList.add({
             'id': _selectedTeacherId,
             'name': 'GVCN (${_selectedTeacherId})',
