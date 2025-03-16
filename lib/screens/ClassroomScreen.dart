@@ -78,18 +78,32 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
         _classList = classList;
         _teacherList = teacherList;
         _gradeBlockList = gradeBlockList;
-        for (var _classroom in _classList) {
-          if (_classroom.homeroomTeacherId != null) {
-            _classroom.homeroomTeacherName =
-                _teacherList.firstWhere(
-                  (t) => t['id'] == _classroom.homeroomTeacherId,
-                )['name'];
+        for (var classroom in _classList) {
+          // Xử lý tên giáo viên chủ nhiệm
+          if (classroom.homeroomTeacherId != null) {
+            try {
+              var teacher = _teacherList.firstWhere(
+                (t) => t['id'] == classroom.homeroomTeacherId,
+                orElse: () => {'name': 'Chưa có GVCN'},
+              );
+              classroom.homeroomTeacherName = teacher['name'];
+            } catch (e) {
+              classroom.homeroomTeacherName = 'Chưa có GVCN';
+            }
           }
-          if (_classroom.gradeBlockId != null) {
-            _classroom.gradeBlockName =
-                _gradeBlockList
-                    .firstWhere((g) => g.id == _classroom.gradeBlockId)
-                    .name;
+
+          // Xử lý tên khối
+          if (classroom.gradeBlockId != null) {
+            try {
+              var gradeBlock = _gradeBlockList.firstWhere(
+                (g) => g.id == classroom.gradeBlockId,
+                orElse:
+                    () => GradeBlock(id: -1, code: '', name: 'Chưa phân khối'),
+              );
+              classroom.gradeBlockName = gradeBlock.name;
+            } catch (e) {
+              classroom.gradeBlockName = 'Chưa phân khối';
+            }
           }
         }
       });
