@@ -1,44 +1,50 @@
+// lib/widgets/classroom/classroom_add_edit_modal.dart
+import 'package:example_app/services/class_service.dart';
 import 'package:flutter/material.dart';
-import '../../services/class_service.dart';
+import '../../models/classroom.dart';
+import '../../models/grade_block.dart';
 
-class ClassAddEditModal extends StatefulWidget {
-  final Map<String, dynamic>? existingClass;
-  final Function() onRefresh;
+class ClassroomAddEditModal extends StatefulWidget {
+  final Classroom? existingClass;
+  final VoidCallback onSuccess;
 
-  const ClassAddEditModal({
+  const ClassroomAddEditModal({
     super.key,
     this.existingClass,
-    required this.onRefresh,
+    required this.onSuccess,
   });
 
   @override
-  _ClassAddEditModalState createState() => _ClassAddEditModalState();
+  _ClassroomAddEditModalState createState() => _ClassroomAddEditModalState();
 }
 
-class _ClassAddEditModalState extends State<ClassAddEditModal> {
+class _ClassroomAddEditModalState extends State<ClassroomAddEditModal> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _capacityController;
   int? _selectedTeacherId;
+  int? _selectedGradeBlockId;
+
   List<Map<String, dynamic>> _teachersList = [];
+  List<GradeBlock> _gradeBlocksList = [];
   bool _isLoading = false;
-  String? _selectedGradeBlockId;
-  List<Map<String, dynamic>> _gradeBlocksList = [];
 
   @override
   void initState() {
     super.initState();
+
+    // Khởi tạo các controller và giá trị từ lớp cần sửa (nếu có)
     _nameController = TextEditingController(
-      text: widget.existingClass?['tenLop'] ?? '',
+      text: widget.existingClass?.name ?? '',
     );
     _capacityController = TextEditingController(
-      text: widget.existingClass?['capacity']?.toString() ?? '',
+      text: widget.existingClass?.capacity.toString() ?? '',
     );
-    _selectedTeacherId = widget.existingClass?['gvcnId'];
-    _selectedGradeBlockId = widget.existingClass?['grade_block_id']?.toString();
+    _selectedTeacherId = widget.existingClass?.homeroomTeacherId;
+    _selectedGradeBlockId = widget.existingClass?.gradeBlockId;
 
-    // Load teachers and grade blocks
-    _loadInitialData();
+    // Tải danh sách giáo viên và khối học
+    _loadTeachersAndGradeBlocks();
   }
 
   @override
@@ -48,46 +54,75 @@ class _ClassAddEditModalState extends State<ClassAddEditModal> {
     super.dispose();
   }
 
-  Future<void> _loadInitialData() async {
+  Future<void> _loadTeachersAndGradeBlocks() async {
     setState(() => _isLoading = true);
     try {
-      // Parallel loading of teachers and grade blocks
-      final teachersLoader = ClassService.fetchTeachers();
-      final gradeBlocksLoader = ClassService.fetchGradeBlocks();
+      // Tải song song cả hai danh sách
+      final Future<List<Map<String, dynamic>>> teachersFuture =
+          ClassroomService.fetchTeachers();
+      final Future<List<GradeBlock>> gradeBlocksFuture =
+          ClassroomService.fetchGradeBlocks();
 
-      final teachers = await teachersLoader;
-      final gradeBlocks = await gradeBlocksLoader;
+      final teachers = await teachersFuture;
+      final gradeBlocks = await gradeBlocksFuture;
 
       setState(() {
-        // Ensure unique teachers with no duplicates
-        _teachersList = _removeDuplicateTeachers(teachers);
-        _gradeBlocksList = _removeDuplicateBlocks(gradeBlocks);
-
-        // Ensure selected teacher exists in list
-        if (_selectedTeacherId != null &&
-            !_teachersList.any(
-              (teacher) => teacher['id'] == _selectedTeacherId,
-            )) {
-          _teachersList.add({
-            'id': _selectedTeacherId,
-            'name': 'GVCN (${_selectedTeacherId})',
-            'email': '',
-          });
-        }
-
-        // Ensure selected grade block exists in list
-        if (_selectedGradeBlockId != null &&
-            !_gradeBlocksList.any(
-              (b) => b['id'].toString() == _selectedGradeBlockId,
-            )) {
-          _gradeBlocksList.add({
-            'id': int.parse(_selectedGradeBlockId!),
-            'name': 'Khối (${_selectedGradeBlockId})',
-            'code': 'CUSTOM',
-            'description': '',
-          });
-        }
+        _teachersList = teachers;
+        _gradeBlocksList = gradeBlocks;
       });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi khi tải dữ liệu: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    try {
+      setState(() => _isLoading = true);
+
+      // Tạo đối tượng Classroom từ dữ liệu form
+      final classroom = Classroom(
+        id: widget.existingClass?.id ?? 0,
+        code: widget.existingClass?.code ?? '',
+        name: _nameController.text,
+        capacity: int.parse(_capacityController.text),
+        studentCount: widget.existingClass?.studentCount ?? 0,
+        status: widget.existingClass?.status ?? 'INCOMPLETE',
+        homeroomTeacherId: _selectedTeacherId,
+        gradeBlockId: _selectedGradeBlockId,
+      );
+
+      if (widget.existingClass == null) {
+        // Thêm mới lớp học
+        await ClassroomService.addClass(classroom);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Thêm lớp học thành công'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // Cập nhật lớp học
+        await ClassroomService.updateClass(classroom);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cập nhật lớp học thành công'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+      // Đóng modal và cập nhật lại danh sách
+      Navigator.of(context).pop();
+      widget.onSuccess();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -100,93 +135,27 @@ class _ClassAddEditModalState extends State<ClassAddEditModal> {
     }
   }
 
-  // Remove duplicate teachers based on ID
-  List<Map<String, dynamic>> _removeDuplicateTeachers(
-    List<Map<String, dynamic>> teachers,
-  ) {
-    final uniqueTeachers = <int, Map<String, dynamic>>{};
-    for (var teacher in teachers) {
-      if (!uniqueTeachers.containsKey(teacher['id'])) {
-        uniqueTeachers[teacher['id']] = teacher;
-      }
-    }
-    return uniqueTeachers.values.toList();
-  }
-
-  // Remove duplicate grade blocks based on ID
-  List<Map<String, dynamic>> _removeDuplicateBlocks(
-    List<Map<String, dynamic>> blocks,
-  ) {
-    final uniqueBlocks = <int, Map<String, dynamic>>{};
-    for (var block in blocks) {
-      if (!uniqueBlocks.containsKey(block['id'])) {
-        uniqueBlocks[block['id']] = block;
-      }
-    }
-    return uniqueBlocks.values.toList();
-  }
-
-  void _submitForm() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    try {
-      final classData = {
-        'name': _nameController.text,
-        'capacity': int.parse(_capacityController.text),
-        'homeroom_teacher_id': _selectedTeacherId,
-        'grade_block_id':
-            _selectedGradeBlockId != null
-                ? int.parse(_selectedGradeBlockId!)
-                : null,
-      };
-
-      if (widget.existingClass == null) {
-        await ClassService.addClass(classData);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Thêm lớp thành công'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        await ClassService.updateClass(widget.existingClass!['id'], classData);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cập nhật lớp thành công'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-
-      widget.onRefresh();
-      Navigator.of(context).pop();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(
         widget.existingClass == null
             ? 'Thêm lớp mới'
-            : 'Sửa lớp ${widget.existingClass!['tenLop']}',
+            : 'Sửa lớp ${widget.existingClass!.name}',
       ),
       content:
           _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(
+                heightFactor: 2,
+                child: CircularProgressIndicator(),
+              )
               : Form(
                 key: _formKey,
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Tên lớp
                       TextFormField(
                         controller: _nameController,
                         decoration: const InputDecoration(
@@ -201,6 +170,8 @@ class _ClassAddEditModalState extends State<ClassAddEditModal> {
                         },
                       ),
                       const SizedBox(height: 16),
+
+                      // Sĩ số tối đa
                       TextFormField(
                         controller: _capacityController,
                         decoration: const InputDecoration(
@@ -210,15 +181,45 @@ class _ClassAddEditModalState extends State<ClassAddEditModal> {
                         keyboardType: TextInputType.number,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Vui lòng nhập sĩ số';
+                            return 'Vui lòng nhập sĩ số tối đa';
                           }
                           if (int.tryParse(value) == null) {
                             return 'Sĩ số phải là số';
+                          }
+                          if (int.parse(value) <= 0) {
+                            return 'Sĩ số phải lớn hơn 0';
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 16),
+
+                      // Dropdown chọn khối
+                      DropdownButtonFormField<int?>(
+                        decoration: const InputDecoration(labelText: 'Khối'),
+                        hint: const Text('Chọn khối'),
+                        value: _selectedGradeBlockId,
+                        items: [
+                          const DropdownMenuItem<int?>(
+                            value: null,
+                            child: Text('-- Chọn khối --'),
+                          ),
+                          ..._gradeBlocksList.map((block) {
+                            return DropdownMenuItem<int?>(
+                              value: block.id,
+                              child: Text('${block.name} (${block.code})'),
+                            );
+                          }).toList(),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedGradeBlockId = value;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Dropdown chọn giáo viên chủ nhiệm
                       DropdownButtonFormField<int?>(
                         decoration: const InputDecoration(
                           labelText: 'Giáo viên chủ nhiệm',
@@ -233,51 +234,14 @@ class _ClassAddEditModalState extends State<ClassAddEditModal> {
                           ..._teachersList.map((teacher) {
                             return DropdownMenuItem<int?>(
                               value: teacher['id'],
-                              child: Text(
-                                '${teacher['name']} (ID: ${teacher['id']})',
-                              ),
+                              child: Text(teacher['name']),
                             );
-                          }),
+                          }).toList(),
                         ],
                         onChanged: (value) {
                           setState(() {
                             _selectedTeacherId = value;
                           });
-                        },
-                        validator: (value) {
-                          // Optional: Add validation if needed
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String?>(
-                        decoration: const InputDecoration(
-                          labelText: 'Khối học',
-                        ),
-                        hint: const Text('Chọn khối học'),
-                        value: _selectedGradeBlockId?.toString(),
-                        items: [
-                          const DropdownMenuItem<String?>(
-                            value: null,
-                            child: Text('Chưa chọn khối'),
-                          ),
-                          ..._gradeBlocksList.map((block) {
-                            return DropdownMenuItem<String?>(
-                              value: block['id'].toString(),
-                              child: Text(
-                                '${block['name']} (${block['code']})',
-                              ),
-                            );
-                          }),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedGradeBlockId = value;
-                          });
-                        },
-                        validator: (value) {
-                          // Optional: Add validation if needed
-                          return null;
                         },
                       ),
                     ],
@@ -291,7 +255,7 @@ class _ClassAddEditModalState extends State<ClassAddEditModal> {
         ),
         ElevatedButton(
           onPressed: _isLoading ? null : _submitForm,
-          child: Text(widget.existingClass == null ? 'Lưu' : 'Cập nhật'),
+          child: Text(widget.existingClass == null ? 'Thêm mới' : 'Cập nhật'),
         ),
       ],
     );

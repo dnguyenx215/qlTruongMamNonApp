@@ -1,12 +1,15 @@
+// lib/screens/classroom_screen.dart
 import 'dart:convert';
+import 'package:example_app/models/grade_block.dart';
+import 'package:example_app/services/class_service.dart';
+import 'package:example_app/widgets/ManagementLayout.dart';
+import 'package:example_app/widgets/classroom/ClassAddEditModal.dart';
+import 'package:example_app/widgets/classroom/ClassDeleteModal.dart';
+import 'package:example_app/widgets/classroom/ClassDetailModal.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../services/class_service.dart';
-import '../widgets/ManagementLayout.dart';
-import '../widgets/classroom/ClassAddEditModal.dart';
-import '../widgets/classroom/ClassDeleteModal.dart';
-import '../widgets/classroom/ClassDetailModal.dart';
+import '../models/classroom.dart';
 
 class ClassroomScreen extends StatefulWidget {
   const ClassroomScreen({super.key});
@@ -25,8 +28,10 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
   String _selectedYear = '2023-2024';
   final List<String> _yearOptions = ['2023-2024', '2024-2025', '2025-2026'];
 
-  // Danh sách lớp lấy từ API
-  List<Map<String, dynamic>> _classList = [];
+  // Danh sách lớp học
+  List<Classroom> _classList = [];
+  List<Map<String, dynamic>> _teacherList = [];
+  List<GradeBlock> _gradeBlockList = [];
 
   @override
   void initState() {
@@ -65,10 +70,28 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
     setState(() => _isLoading = true);
 
     try {
-      List<Map<String, dynamic>> classList = await ClassService.fetchClasses();
+      final classList = await ClassroomService.fetchClasses();
+      final teacherList = await ClassroomService.fetchTeachers();
+      final gradeBlockList = await ClassroomService.fetchGradeBlocks();
 
       setState(() {
         _classList = classList;
+        _teacherList = teacherList;
+        _gradeBlockList = gradeBlockList;
+        for (var _classroom in _classList) {
+          if (_classroom.homeroomTeacherId != null) {
+            _classroom.homeroomTeacherName =
+                _teacherList.firstWhere(
+                  (t) => t['id'] == _classroom.homeroomTeacherId,
+                )['name'];
+          }
+          if (_classroom.gradeBlockId != null) {
+            _classroom.gradeBlockName =
+                _gradeBlockList
+                    .firstWhere((g) => g.id == _classroom.gradeBlockId)
+                    .name;
+          }
+        }
       });
     } catch (e) {
       debugPrint("Lỗi khi tải danh sách lớp: $e");
@@ -86,47 +109,51 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
   }
 
   // Lọc danh sách lớp theo từ khóa
-  List<Map<String, dynamic>> get _filteredClassList {
+  List<Classroom> get _filteredClassList {
     if (_searchKeyword.isEmpty) {
       return _classList;
     }
-    return _classList.where((c) {
-      final tenLop = (c['tenLop'] ?? '').toString().toLowerCase();
-      final gvcn = (c['gvcn'] ?? '').toString().toLowerCase();
-      return tenLop.contains(_searchKeyword.toLowerCase()) ||
-          gvcn.contains(_searchKeyword.toLowerCase());
+
+    return _classList.where((classroom) {
+      final name = classroom.name.toLowerCase();
+      final teacherName = classroom.homeroomTeacherName.toLowerCase();
+      return name.contains(_searchKeyword.toLowerCase()) ||
+          teacherName.contains(_searchKeyword.toLowerCase());
     }).toList();
   }
 
   // Hiển thị modal thêm/sửa lớp
-  void _showAddEditModal([Map<String, dynamic>? existingClass]) {
+  void _showAddEditModal([Classroom? existingClass]) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return ClassAddEditModal(
+        return ClassroomAddEditModal(
           existingClass: existingClass,
-          onRefresh: _fetchClasses,
+          onSuccess: _fetchClasses,
         );
       },
     );
   }
 
   // Hiển thị modal xóa lớp
-  void _showDeleteModal(Map<String, dynamic> classData) {
+  void _showDeleteModal(Classroom classroom) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return ClassDeleteModal(classData: classData, onRefresh: _fetchClasses);
+        return ClassroomDeleteModal(
+          classroom: classroom,
+          onSuccess: _fetchClasses,
+        );
       },
     );
   }
 
   // Hiển thị modal chi tiết lớp
-  void _showClassDetailModal(Map<String, dynamic> classData) {
+  void _showClassDetailModal(Classroom classroom) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return ClassDetailModal(classData: classData);
+        return ClassroomDetailModal(classroom: classroom);
       },
     );
   }
@@ -144,10 +171,7 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                // Đảm bảo bảng không bị tràn ngang
-                minWidth: constraints.maxWidth,
-              ),
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
               child: DataTable(
                 columns: const [
                   DataColumn(label: Text('STT')),
@@ -161,35 +185,40 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
                 rows:
                     _filteredClassList.asMap().entries.map((entry) {
                       final index = entry.key;
-                      final item = entry.value;
+                      final classroom = entry.value;
+
                       return DataRow(
+                        selected: classroom.checked,
                         onSelectChanged: (selected) {
                           if (selected != null) {
                             setState(() {
                               // Đảm bảo chỉ được chọn 1 lớp tại một thời điểm
                               for (var c in _classList) {
-                                c["checked"] = false;
+                                c.checked = false;
                               }
-                              item["checked"] = selected;
+                              classroom.checked = selected;
                             });
                           }
                         },
-                        selected: item["checked"] ?? false,
                         cells: [
                           DataCell(Text('${index + 1}')),
-                          DataCell(Text(item["maLop"] ?? "")),
-                          DataCell(Text(item["tenLop"] ?? "")),
-                          DataCell(Text(item["heLop"] ?? "")),
+                          DataCell(Text(classroom.code)),
+                          DataCell(Text(classroom.name)),
+                          DataCell(Text(classroom.gradeBlockName)),
                           DataCell(
                             Tooltip(
-                              message: item["gvcn"] ?? "Chưa có GVCN",
+                              message: classroom.homeroomTeacherName,
                               child: Text(
-                                item["gvcn"] ?? "Chưa có GVCN",
+                                classroom.homeroomTeacherName,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ),
-                          DataCell(Text(item["siSo"]?.toString() ?? "")),
+                          DataCell(
+                            Text(
+                              '${classroom.studentCount}/${classroom.capacity}',
+                            ),
+                          ),
                           DataCell(
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -198,16 +227,16 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
                               ),
                               decoration: BoxDecoration(
                                 color:
-                                    item["tinhTrang"] == "FULL"
+                                    classroom.status == "FULL"
                                         ? Colors.red[100]
                                         : Colors.green[100],
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                item["tinhTrang"] ?? "",
+                                classroom.status,
                                 style: TextStyle(
                                   color:
-                                      item["tinhTrang"] == "FULL"
+                                      classroom.status == "FULL"
                                           ? Colors.red[900]
                                           : Colors.green[900],
                                   fontWeight: FontWeight.bold,
@@ -230,12 +259,12 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
   void _themMoi() => _showAddEditModal();
 
   void _sua() {
-    final selectedClass = _filteredClassList.firstWhere(
-      (item) => item["checked"] == true,
-      orElse: () => {},
+    final selectedClass = _classList.firstWhere(
+      (item) => item.checked,
+      orElse: () => throw Exception('No classroom selected'),
     );
 
-    if (selectedClass.isEmpty) {
+    if (selectedClass.id <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Vui lòng chọn một lớp để sửa'),
@@ -249,12 +278,12 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
   }
 
   void _xoa() {
-    final selectedClass = _filteredClassList.firstWhere(
-      (item) => item["checked"] == true,
-      orElse: () => {},
+    final selectedClass = _classList.firstWhere(
+      (item) => item.checked,
+      orElse: () => throw Exception('No classroom selected'),
     );
 
-    if (selectedClass.isEmpty) {
+    if (selectedClass.id <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Vui lòng chọn một lớp để xóa'),
@@ -268,12 +297,12 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
   }
 
   void _xemChiTiet() {
-    final selectedClass = _filteredClassList.firstWhere(
-      (item) => item["checked"] == true,
-      orElse: () => {},
+    final selectedClass = _classList.firstWhere(
+      (item) => item.checked,
+      orElse: () => throw Exception('No classroom selected'),
     );
 
-    if (selectedClass.isEmpty) {
+    if (selectedClass.id <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Vui lòng chọn một lớp để xem chi tiết'),
@@ -338,8 +367,10 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
                           );
                         }).toList(),
                     onChanged: (val) {
-                      setState(() => _selectedYear = val ?? _selectedYear);
-                      // TODO: Gọi API hoặc lọc lại dữ liệu nếu cần
+                      if (val != null) {
+                        setState(() => _selectedYear = val);
+                        // TODO: Gọi API lấy danh sách lớp theo năm học khi API hỗ trợ
+                      }
                     },
                   ),
 
@@ -351,19 +382,20 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
                   ),
                   // Nút Sửa
                   ElevatedButton.icon(
-                    onPressed: _sua,
+                    onPressed: _classList.any((c) => c.checked) ? _sua : null,
                     icon: const Icon(Icons.edit),
                     label: const Text('Sửa'),
                   ),
                   // Nút Xóa
                   ElevatedButton.icon(
-                    onPressed: _xoa,
+                    onPressed: _classList.any((c) => c.checked) ? _xoa : null,
                     icon: const Icon(Icons.delete),
                     label: const Text('Xóa'),
                   ),
                   // Nút Xem chi tiết
                   ElevatedButton.icon(
-                    onPressed: _xemChiTiet,
+                    onPressed:
+                        _classList.any((c) => c.checked) ? _xemChiTiet : null,
                     icon: const Icon(Icons.info),
                     label: const Text('Xem chi tiết'),
                   ),
