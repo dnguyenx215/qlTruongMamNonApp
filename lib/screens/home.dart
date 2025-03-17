@@ -68,7 +68,8 @@ class _HomeScreenState extends State<HomeScreen> {
     } else if (formattedRoute == '/grade' ||
         formattedRoute == '/class' ||
         formattedRoute == '/students' ||
-        formattedRoute == '/holidays') {
+        formattedRoute == '/holidays' ||
+        formattedRoute == '/attendance') {
       Navigator.pushNamed(context, formattedRoute);
     } else {
       // Nếu là menu khác mà vẫn nằm trong HomeScreen, cập nhật _selectedRoute

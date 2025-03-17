@@ -12,7 +12,8 @@ class Student {
   final String? parentEmail;
   final int? classId;
   bool checked; // Để quản lý trạng thái chọn trong UI
-
+  String attendanceStatus = 'present'; // Default: present
+  String? absenceReason;
   Student({
     this.id,
     this.studentCode,
@@ -92,6 +93,40 @@ class Student {
       classId: classId ?? this.classId,
       checked: checked ?? this.checked,
     );
+  }
+
+  Student copyWithAttendance({
+    int? id,
+    String? studentCode,
+    String? firstName,
+    String? lastName,
+    String? birthday,
+    String? gender,
+    String? address,
+    String? parentName,
+    String? parentPhone,
+    String? parentEmail,
+    int? classId,
+    bool? checked,
+    String? attendanceStatus,
+    String? absenceReason,
+  }) {
+    return Student(
+        id: id ?? this.id,
+        studentCode: studentCode ?? this.studentCode,
+        firstName: firstName ?? this.firstName,
+        lastName: lastName ?? this.lastName,
+        birthday: birthday ?? this.birthday,
+        gender: gender ?? this.gender,
+        address: address ?? this.address,
+        parentName: parentName ?? this.parentName,
+        parentPhone: parentPhone ?? this.parentPhone,
+        parentEmail: parentEmail ?? this.parentEmail,
+        classId: classId ?? this.classId,
+        checked: checked ?? this.checked,
+      )
+      ..attendanceStatus = attendanceStatus ?? this.attendanceStatus
+      ..absenceReason = absenceReason ?? this.absenceReason;
   }
 
   // Thuộc tính tính toán để lấy tên đầy đủ

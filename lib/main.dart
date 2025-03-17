@@ -1,4 +1,5 @@
 // lib/main.dart
+import 'package:QL_TruongMamNon/screens/attendance/attendance_screen.dart';
 import 'package:QL_TruongMamNon/screens/holiday_configuration_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -32,7 +33,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        fontFamily: 'Roboto',
+        fontFamily: 'Arial',
         scaffoldBackgroundColor: Colors.grey[100],
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.blue,
@@ -78,6 +79,7 @@ class MyApp extends StatelessWidget {
         '/grade': (context) => const GradeScreen(),
         '/students': (context) => const StudentListScreen(),
         '/holidays': (context) => const HolidayConfigurationScreen(),
+        '/attendance': (context) => const AttendanceScreen(),
       },
     );
   }
