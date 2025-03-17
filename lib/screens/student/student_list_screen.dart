@@ -1,7 +1,7 @@
 // lib/screens/student/student_list_screen.dart
+import 'package:QL_TruongMamNon/widgets/student/student_change_class_dialog.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
-import 'package:example_app/widgets/student/student_change_class_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/student.dart';

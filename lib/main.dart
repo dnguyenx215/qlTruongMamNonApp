@@ -1,4 +1,5 @@
 // lib/main.dart
+import 'package:QL_TruongMamNon/screens/holiday_configuration_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/login.dart';
@@ -7,8 +8,12 @@ import 'screens/grade_management.dart';
 import 'screens/student/student_list_screen.dart';
 import 'screens/student/student_detail_screen.dart';
 import 'screens/ClassroomScreen.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
+
 
 void main() async {
+  await initializeDateFormatting('vi_VN', null);
   // Đảm bảo widgets đã được init trước khi thực hiện các operations như loads
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -73,6 +78,7 @@ class MyApp extends StatelessWidget {
         '/class': (context) => const ClassroomScreen(),
         '/grade': (context) => const GradeScreen(),
         '/students': (context) => const StudentListScreen(),
+        '/holidays': (context) => const HolidayConfigurationScreen(),
       },
     );
   }

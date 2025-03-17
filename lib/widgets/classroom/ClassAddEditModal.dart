@@ -1,5 +1,6 @@
 // lib/widgets/classroom/classroom_add_edit_modal.dart
-import 'package:example_app/services/class_service.dart';
+
+import 'package:QL_TruongMamNon/services/class_service.dart';
 import 'package:flutter/material.dart';
 import '../../models/classroom.dart';
 import '../../models/grade_block.dart';

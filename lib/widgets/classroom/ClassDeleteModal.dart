@@ -1,5 +1,5 @@
 // lib/widgets/classroom/classroom_delete_modal.dart
-import 'package:example_app/services/class_service.dart';
+import 'package:QL_TruongMamNon/services/class_service.dart';
 import 'package:flutter/material.dart';
 import '../../models/classroom.dart';
 

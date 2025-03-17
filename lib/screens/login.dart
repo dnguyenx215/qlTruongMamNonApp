@@ -1,4 +1,4 @@
-import 'package:example_app/services/auth_service.dart';
+import 'package:QL_TruongMamNon/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'home.dart';
 
@@ -48,11 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (user != null) {
         // Đăng nhập thành công, chuyển hướng đến màn hình chính
-        // ignore: use_build_context_synchronously
-        // Navigator.pushReplacementNamed(
-        //   context,
-        //   '/home',
-        // );
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),

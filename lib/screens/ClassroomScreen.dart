@@ -1,11 +1,11 @@
 // lib/screens/classroom_screen.dart
 import 'dart:convert';
-import 'package:example_app/models/grade_block.dart';
-import 'package:example_app/services/class_service.dart';
-import 'package:example_app/widgets/ManagementLayout.dart';
-import 'package:example_app/widgets/classroom/ClassAddEditModal.dart';
-import 'package:example_app/widgets/classroom/ClassDeleteModal.dart';
-import 'package:example_app/widgets/classroom/ClassDetailModal.dart';
+import 'package:QL_TruongMamNon/models/grade_block.dart';
+import 'package:QL_TruongMamNon/services/class_service.dart';
+import 'package:QL_TruongMamNon/widgets/ManagementLayout.dart';
+import 'package:QL_TruongMamNon/widgets/classroom/ClassAddEditModal.dart';
+import 'package:QL_TruongMamNon/widgets/classroom/ClassDeleteModal.dart';
+import 'package:QL_TruongMamNon/widgets/classroom/ClassDetailModal.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
