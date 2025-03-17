@@ -68,10 +68,7 @@ flutter:
   assets:
     - lib/assets/
     - assets/
-  fonts:
-    - family: Roboto
-      fonts:
-        - asset: assets/fonts/static/Roboto_Condensed-Regular.ttf
+  
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

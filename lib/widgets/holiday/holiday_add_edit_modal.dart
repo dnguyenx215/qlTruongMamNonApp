@@ -1,4 +1,6 @@
 // lib/widgets/holidays/holiday_add_edit_modal.dart
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -8,11 +10,13 @@ import '../../services/holiday_service.dart';
 class HolidayAddEditModal extends StatefulWidget {
   final Holiday? existingHoliday;
   final Function() onSave;
+  final int selectedYear;
 
   const HolidayAddEditModal({
     super.key,
     this.existingHoliday,
     required this.onSave,
+    required this.selectedYear,
   });
 
   @override
@@ -40,6 +44,12 @@ class _HolidayAddEditModalState extends State<HolidayAddEditModal> {
   void initState() {
     super.initState();
 
+    if (widget.existingHoliday == null) {
+      // Set initial date to January 1st of the selected year
+      _dateController.text = DateFormat(
+        'dd/MM/yyyy',
+      ).format(DateTime(widget.selectedYear, 1, 1));
+    }
     // Initialize controllers from existing holiday if any
     if (widget.existingHoliday != null) {
       final holiday = widget.existingHoliday!;
@@ -107,7 +117,9 @@ class _HolidayAddEditModalState extends State<HolidayAddEditModal> {
       final displayFormatter = DateFormat('dd/MM/yyyy');
       final apiFormatter = DateFormat('yyyy-MM-dd');
 
-      final displayDate = displayFormatter.parse(_dateController.text);
+      final displayDate = displayFormatter.parse(
+        _dateController.text.toString(),
+      );
       final apiDate = apiFormatter.format(displayDate);
 
       final holidayData = {
@@ -282,7 +294,7 @@ class _HolidayAddEditModalState extends State<HolidayAddEditModal> {
             vertical: 16,
           ),
         ),
-        readOnly: true, // Prevent direct editing
+        readOnly: false, // Prevent direct editing
         validator: (value) {
           if (value == null || value.isEmpty) {
             return 'Vui lòng chọn ngày';

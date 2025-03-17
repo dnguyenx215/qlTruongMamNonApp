@@ -11,7 +11,6 @@ import 'screens/ClassroomScreen.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
-
 void main() async {
   await initializeDateFormatting('vi_VN', null);
   // Đảm bảo widgets đã được init trước khi thực hiện các operations như loads

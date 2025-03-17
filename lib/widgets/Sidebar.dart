@@ -62,7 +62,11 @@ class SidebarComponent extends StatelessWidget {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    _buildNavItem('home', 'Trang chính', FontAwesomeIcons.home),
+                    _buildNavItem(
+                      '/home',
+                      'Trang chính',
+                      FontAwesomeIcons.home,
+                    ),
 
                     _buildNavItem(
                       '/grade',

@@ -57,7 +57,7 @@ class HolidayService {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? userDataString = prefs.getString('user');
     String? token = prefs.getString('token');
-
+    print(jsonEncode(holidayData));
     if (userDataString == null) {
       throw Exception("User data not found");
     }
@@ -65,11 +65,8 @@ class HolidayService {
     final userData = jsonDecode(userDataString);
     final userId = userData['id'];
 
-    // Add user_id to request
-    holidayData['user_id'] = userId;
-
     final response = await http.post(
-      Uri.parse("$baseUrl/holidays"),
+      Uri.parse("$baseUrl/holidays?user_id=$userId"),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -102,7 +99,7 @@ class HolidayService {
     final userId = userData['id'];
 
     // Add user_id to request
-    holidayData['user_id'] = userId;
+    holidayData['user_id'] = userId.toString();
 
     final response = await http.put(
       Uri.parse("$baseUrl/holidays/$holidayId"),

@@ -27,7 +27,7 @@ class _HolidayMonthCalendarState extends State<HolidayMonthCalendar> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Map<DateTime, List<Holiday>> _holidaysByDay = {};
-
+  int _selectedYear = DateTime.now().year;
   @override
   void initState() {
     super.initState();
@@ -258,6 +258,7 @@ class _HolidayMonthCalendarState extends State<HolidayMonthCalendar> {
         return HolidayAddEditModal(
           existingHoliday: holiday,
           onSave: widget.onRefresh,
+          selectedYear: _selectedYear,
         );
       },
     );
@@ -335,6 +336,7 @@ class _HolidayMonthCalendarState extends State<HolidayMonthCalendar> {
         return HolidayAddEditModal(
           existingHoliday: newHoliday,
           onSave: widget.onRefresh,
+          selectedYear: _selectedYear,
         );
       },
     );

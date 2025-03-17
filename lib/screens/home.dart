@@ -24,7 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _userName = '';
   String _userRole = '';
   String _userRoleDisplay = '';
-  String _selectedRoute = 'home';
+  String _selectedRoute = '/home';
   String _activeNotificationFilter = 'today';
 
   @override
@@ -67,12 +67,14 @@ class _HomeScreenState extends State<HomeScreen> {
       _logout();
     } else if (formattedRoute == '/grade' ||
         formattedRoute == '/class' ||
-        formattedRoute == '/students') {
+        formattedRoute == '/students' ||
+        formattedRoute == '/holidays') {
       Navigator.pushNamed(context, formattedRoute);
     } else {
       // Nếu là menu khác mà vẫn nằm trong HomeScreen, cập nhật _selectedRoute
       setState(() {
         _selectedRoute = formattedRoute;
+        Navigator.pushNamed(context, _selectedRoute);
       });
     }
   }

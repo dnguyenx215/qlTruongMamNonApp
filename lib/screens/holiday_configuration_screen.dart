@@ -130,6 +130,7 @@ class _HolidayConfigurationScreenState
         return HolidayAddEditModal(
           existingHoliday: existingHoliday,
           onSave: _fetchHolidays,
+          selectedYear: _selectedYear,
         );
       },
     );
@@ -296,112 +297,84 @@ class _HolidayConfigurationScreenState
       builder: (context, constraints) {
         final isSmallScreen = constraints.maxWidth < 600;
 
-        // For small screens, use a ListView with cards instead of a table
         if (isSmallScreen) {
+          // Use ListView with cards for small screens
           return ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
             itemCount: holidays.length,
             itemBuilder: (context, index) {
               final holiday = holidays[index];
-
-              // Format holiday date to display
-              final dateFormatter = DateFormat('dd/MM/yyyy');
-              final holidayDate = DateTime.parse(holiday.holidayDate);
-              final formattedDate = dateFormatter.format(holidayDate);
-
               return Card(
-                margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  leading: Checkbox(
-                    value: holiday.checked,
-                    onChanged: (value) {
-                      setState(() {
-                        holiday.checked = value ?? false;
-                      });
-                    },
-                  ),
-                  title: Text(
-                    holiday.holidayName,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  title: Text(holiday.holidayName),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Ngày: $formattedDate'),
+                      Text('Ngày: ${_formatDate(holiday.holidayDate)}'),
                       Text(
-                        'Loại: ${_holidayTypeLabels[holiday.holidayType] ?? holiday.holidayType}',
+                        'Loại: ${_getHolidayTypeLabel(holiday.holidayType)}',
                       ),
-                      if (holiday.description.isNotEmpty)
-                        Text('Mô tả: ${holiday.description}'),
                     ],
                   ),
-                  isThreeLine: holiday.description.isNotEmpty,
                 ),
               );
             },
           );
         }
 
-        // For larger screens, use a DataTable
+        // DataTable for larger screens
         return SingleChildScrollView(
-          scrollDirection: Axis.vertical,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minWidth: constraints.maxWidth),
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text('')), // Checkbox
-                  DataColumn(label: Text('STT')),
-                  DataColumn(label: Text('NGÀY')),
-                  DataColumn(label: Text('TÊN SỰ KIỆN')),
-                  DataColumn(label: Text('LOẠI')),
-                  DataColumn(label: Text('MÔ TẢ')),
-                ],
-                rows:
-                    holidays.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final holiday = entry.value;
-
-                      // Format holiday date to display
-                      final dateFormatter = DateFormat('dd/MM/yyyy');
-                      final holidayDate = DateTime.parse(holiday.holidayDate);
-                      final formattedDate = dateFormatter.format(holidayDate);
-
-                      return DataRow(
-                        cells: [
-                          DataCell(
-                            Checkbox(
-                              value: holiday.checked,
-                              onChanged: (value) {
-                                setState(() {
-                                  holiday.checked = value ?? false;
-                                });
-                              },
-                            ),
-                          ),
-                          DataCell(Text('${index + 1}')),
-                          DataCell(Text(formattedDate)),
-                          DataCell(Text(holiday.holidayName)),
-                          DataCell(
-                            Text(
-                              _holidayTypeLabels[holiday.holidayType] ??
-                                  holiday.holidayType,
-                            ),
-                          ),
-                          DataCell(Text(holiday.description)),
-                        ],
-                      );
-                    }).toList(),
-              ),
-            ),
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+            columns: const [
+              DataColumn(label: Text('STT')),
+              DataColumn(label: Text('NGÀY')),
+              DataColumn(label: Text('TÊN SỰ KIỆN')),
+              DataColumn(label: Text('LOẠI')),
+              DataColumn(label: Text('MÔ TẢ')),
+            ],
+            rows:
+                holidays.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final holiday = entry.value;
+                  return DataRow(
+                    cells: [
+                      DataCell(Text('${index + 1}')),
+                      DataCell(Text(_formatDate(holiday.holidayDate))),
+                      DataCell(Text(holiday.holidayName)),
+                      DataCell(Text(_getHolidayTypeLabel(holiday.holidayType))),
+                      DataCell(Text(holiday.description)),
+                    ],
+                  );
+                }).toList(),
           ),
         );
       },
     );
+  }
+
+  // Helper methods
+  String _formatDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      return DateFormat('dd/MM/yyyy').format(date);
+    } catch (e) {
+      return dateString;
+    }
+  }
+
+  String _getHolidayTypeLabel(String type) {
+    switch (type) {
+      case 'weekend':
+        return 'Cuối tuần';
+      case 'national':
+        return 'Lễ quốc gia';
+      case 'school':
+        return 'Nghỉ trường';
+      default:
+        return type;
+    }
   }
 
   @override
@@ -412,193 +385,187 @@ class _HolidayConfigurationScreenState
       userRole: _userRole,
       title: 'Cấu hình ngày nghỉ',
       onRouteSelected: (route) => Navigator.pushNamed(context, route),
-      mainContent: LayoutBuilder(
-        builder: (context, constraints) {
-          final isSmallScreen = constraints.maxWidth < 600;
-          final isMediumScreen = constraints.maxWidth < 900;
+      mainContent: SingleChildScrollView(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isSmallScreen = constraints.maxWidth < 600;
+            final isMediumScreen = constraints.maxWidth < 900;
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Tiêu đề trang
-              const Text(
-                'CẤU HÌNH NGÀY NGHỈ',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Tiêu đề trang
+                const Text(
+                  'CẤU HÌNH NGÀY NGHỈ',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
 
-              // Filter & buttons - Responsive Wrap
-              Wrap(
-                spacing: 8,
-                runSpacing: 12,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  // Search box
-                  SizedBox(
-                    width: isSmallScreen ? constraints.maxWidth * 0.9 : 250,
-                    child: TextField(
-                      decoration: const InputDecoration(
-                        hintText: 'Tìm kiếm...',
-                        prefixIcon: Icon(Icons.search),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      onChanged: (value) {
-                        setState(() => _searchKeyword = value);
-                      },
-                    ),
-                  ),
-
-                  // Year selector
-                  SizedBox(
-                    width: isSmallScreen ? constraints.maxWidth * 0.45 : 120,
-                    child: DropdownButtonFormField<int>(
-                      isDense: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Năm',
-                        contentPadding: EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 10,
-                        ),
-                      ),
-                      value: _selectedYear,
-                      items: [
-                        for (
-                          int year = DateTime.now().year - 2;
-                          year <= DateTime.now().year + 2;
-                          year++
-                        )
-                          DropdownMenuItem(
-                            value: year,
-                            child: Text(year.toString()),
-                          ),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => _selectedYear = value);
-                          _fetchHolidays();
-                        }
-                      },
-                    ),
-                  ),
-
-                  // Holiday type filter
-                  SizedBox(
-                    width: isSmallScreen ? constraints.maxWidth * 0.45 : 150,
-                    child: DropdownButtonFormField<String>(
-                      isDense: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Loại ngày nghỉ',
-                        contentPadding: EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 10,
-                        ),
-                      ),
-                      value: _selectedHolidayType,
-                      items:
-                          _holidayTypes
-                              .map(
-                                (type) => DropdownMenuItem(
-                                  value: type,
-                                  child: Text(_holidayTypeLabels[type] ?? type),
-                                ),
-                              )
-                              .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => _selectedHolidayType = value);
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // Action buttons - Responsive Wrap
-              SizedBox(
-                width: double.infinity,
-                child: Wrap(
+                // Filter & buttons - Responsive Wrap
+                Wrap(
                   spacing: 8,
-                  runSpacing: 8,
-                  alignment:
-                      isSmallScreen
-                          ? WrapAlignment.center
-                          : WrapAlignment.start,
+                  runSpacing: 12,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    _buildActionButton(
-                      icon: Icons.add,
-                      label: isSmallScreen ? '' : 'Thêm mới',
-                      tooltip: 'Thêm mới ngày nghỉ',
-                      onPressed: _themMoi,
+                    // Search box
+                    SizedBox(
+                      width: isSmallScreen ? constraints.maxWidth * 0.9 : 250,
+                      child: TextField(
+                        decoration: const InputDecoration(
+                          hintText: 'Tìm kiếm...',
+                          prefixIcon: Icon(Icons.search),
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onChanged: (value) {
+                          setState(() => _searchKeyword = value);
+                        },
+                      ),
                     ),
-                    _buildActionButton(
-                      icon: Icons.edit,
-                      label: isSmallScreen ? '' : 'Sửa',
-                      tooltip: 'Sửa ngày nghỉ',
-                      onPressed: _sua,
+
+                    // Year selector
+                    SizedBox(
+                      width: isSmallScreen ? constraints.maxWidth * 0.45 : 120,
+                      child: DropdownButtonFormField<int>(
+                        isDense: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Năm',
+                          contentPadding: EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 10,
+                          ),
+                        ),
+                        value: _selectedYear,
+                        items: [
+                          for (
+                            int year = DateTime.now().year - 2;
+                            year <= DateTime.now().year + 2;
+                            year++
+                          )
+                            DropdownMenuItem(
+                              value: year,
+                              child: Text(year.toString()),
+                            ),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => _selectedYear = value);
+                            _fetchHolidays();
+                          }
+                        },
+                      ),
                     ),
-                    _buildActionButton(
-                      icon: Icons.delete,
-                      label: isSmallScreen ? '' : 'Xóa',
-                      tooltip: 'Xóa ngày nghỉ',
-                      onPressed: _xoa,
-                    ),
-                    _buildActionButton(
-                      icon: Icons.weekend,
-                      label: isSmallScreen ? '' : 'Tạo ngày nghỉ cuối tuần',
-                      tooltip: 'Tạo ngày nghỉ cuối tuần',
-                      onPressed: _createWeekendHolidays,
+
+                    // Holiday type filter
+                    SizedBox(
+                      width: isSmallScreen ? constraints.maxWidth * 0.45 : 150,
+                      child: DropdownButtonFormField<String>(
+                        isDense: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Loại ngày nghỉ',
+                          contentPadding: EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 10,
+                          ),
+                        ),
+                        value: _selectedHolidayType,
+                        items:
+                            _holidayTypes
+                                .map(
+                                  (type) => DropdownMenuItem(
+                                    value: type,
+                                    child: Text(
+                                      _holidayTypeLabels[type] ?? type,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => _selectedHolidayType = value);
+                          }
+                        },
+                      ),
                     ),
                   ],
                 ),
-              ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // Responsive layout for calendar and table
-              Expanded(
-                child:
-                    _isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : isMediumScreen
-                        // Stack layout for small/medium screens
-                        ? Column(
-                          children: [
-                            // Calendar view
-                            HolidayMonthCalendar(
-                              year: _selectedYear,
-                              holidays: _holidaysList,
-                              onRefresh: _fetchHolidays,
-                            ),
-                            const SizedBox(height: 16),
-                            // Table view
-                            Expanded(child: _buildHolidaysTable()),
-                          ],
-                        )
-                        // Side-by-side layout for large screens
-                        : Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Left: Calendar view
-                            Expanded(
-                              flex: 3,
-                              child: HolidayMonthCalendar(
-                                year: _selectedYear,
-                                holidays: _holidaysList,
-                                onRefresh: _fetchHolidays,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            // Right: Table view
-                            Expanded(flex: 4, child: _buildHolidaysTable()),
-                          ],
+                // Action buttons
+                SizedBox(
+                  width: double.infinity,
+                  child: // In the action buttons Wrap section, replace the placeholder comment with:
+                      Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment:
+                        isSmallScreen
+                            ? WrapAlignment.center
+                            : WrapAlignment.start,
+                    children: [
+                      _buildActionButton(
+                        icon: Icons.add,
+                        label: isSmallScreen ? '' : 'Thêm mới',
+                        tooltip: 'Thêm mới ngày nghỉ',
+                        onPressed: _themMoi,
+                      ),
+                      _buildActionButton(
+                        icon: Icons.edit,
+                        label: isSmallScreen ? '' : 'Sửa',
+                        tooltip: 'Sửa ngày nghỉ',
+                        onPressed: _sua,
+                      ),
+                      _buildActionButton(
+                        icon: Icons.delete,
+                        label: isSmallScreen ? '' : 'Xóa',
+                        tooltip: 'Xóa ngày nghỉ',
+                        onPressed: _xoa,
+                      ),
+                      _buildActionButton(
+                        icon: Icons.weekend,
+                        label: isSmallScreen ? '' : 'Tạo ngày nghỉ cuối tuần',
+                        tooltip: 'Tạo ngày nghỉ cuối tuần',
+                        onPressed: _createWeekendHolidays,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Responsive layout for calendar and table
+                isMediumScreen
+                    ? Column(
+                      children: [
+                        HolidayMonthCalendar(
+                          year: _selectedYear,
+                          holidays: _holidaysList,
+                          onRefresh: _fetchHolidays,
                         ),
-              ),
-            ],
-          );
-        },
+                        const SizedBox(height: 16),
+                        _buildHolidaysTable(),
+                      ],
+                    )
+                    : Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: HolidayMonthCalendar(
+                            year: _selectedYear,
+                            holidays: _holidaysList,
+                            onRefresh: _fetchHolidays,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(flex: 4, child: _buildHolidaysTable()),
+                      ],
+                    ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
