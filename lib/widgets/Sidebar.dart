@@ -5,7 +5,6 @@ class SidebarComponent extends StatelessWidget {
   final String selectedRoute;
   final Function(String) onRouteSelected;
 
-
   const SidebarComponent({
     super.key,
     required this.selectedRoute,
@@ -66,42 +65,42 @@ class SidebarComponent extends StatelessWidget {
                     _buildNavItem('home', 'Trang chính', FontAwesomeIcons.home),
 
                     _buildNavItem(
-                      'grade',
+                      '/grade',
                       'Quản lý khối',
                       FontAwesomeIcons.layerGroup,
                     ),
                     _buildNavItem(
-                      'class',
+                      '/class',
                       'Quản lý lớp',
                       FontAwesomeIcons.chalkboardTeacher,
                     ),
                     _buildNavItem(
-                      'students',
+                      '/students',
                       'Danh sách học sinh',
                       FontAwesomeIcons.list,
                     ),
                     _buildNavItem(
-                      'holidays',
+                      '/holidays',
                       'Cấu hình ngày nghỉ',
                       FontAwesomeIcons.calendarAlt,
                     ),
                     _buildNavItem(
-                      'attendance',
+                      '/attendance',
                       'Điểm danh học sinh',
                       FontAwesomeIcons.checkSquare,
                     ),
                     _buildNavItem(
-                      'monitor',
+                      '/monitor',
                       'Theo dõi học sinh',
                       FontAwesomeIcons.userCheck,
                     ),
                     _buildNavItem(
-                      'receipt',
+                      '/receipt',
                       'Phiếu thu',
                       FontAwesomeIcons.receipt,
                     ),
                     _buildNavItem(
-                      'tuition',
+                      '/tuition',
                       'Sổ thu học phí',
                       FontAwesomeIcons.wallet,
                     ),
@@ -113,13 +112,13 @@ class SidebarComponent extends StatelessWidget {
             // Bottom Navigation Items
             Column(
               children: [
-                _buildNavItem('admin', 'Quản trị', FontAwesomeIcons.cogs),
+                _buildNavItem('/config', 'Cài đặt', FontAwesomeIcons.cogs),
                 _buildNavItem(
-                  'help',
+                  '/help',
                   'Trợ giúp',
                   FontAwesomeIcons.questionCircle,
                 ),
-                _buildNavItem('logout', 'Thoát', FontAwesomeIcons.signOutAlt),
+                _buildNavItem('/logout', 'Thoát', FontAwesomeIcons.signOutAlt),
               ],
             ),
           ],

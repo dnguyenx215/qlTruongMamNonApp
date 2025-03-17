@@ -37,6 +37,16 @@ dependencies:
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.5.2
   flutter_dotenv: ^5.2.1
+  intl: ^0.18.1
+    # Gói để xuất PDF
+  pdf: ^3.10.1
+  printing: ^5.10.0
+  # Gói để xuất Excel
+  excel: ^2.1.0
+  # Gói để làm việc với tệp
+  path_provider: ^2.0.15
+  permission_handler: ^10.2.0
+  open_file: ^3.3.2
 
 dev_dependencies:
   flutter_test:
@@ -55,9 +65,12 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   assets:
-    - lib/assets/logo.png
-    - lib/assets/kids.png
-    - lib/assets/.env
+    - lib/assets/
+    - assets/
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/static/Roboto_Condensed-Regular.ttf
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

@@ -332,7 +332,7 @@ class _ClassroomScreenState extends State<ClassroomScreen> {
   @override
   Widget build(BuildContext context) {
     return ManagementLayout(
-      selectedRoute: 'class',
+      selectedRoute: '/class',
       userName: _userName,
       userRole: _userRole,
       title: 'Quản lý lớp',

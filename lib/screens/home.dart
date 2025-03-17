@@ -62,14 +62,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _handleRouteSelected(String route) {
-    if (route == 'logout') {
+    final formattedRoute = route.startsWith('/') ? route : '/$route';
+    if (route == '/logout') {
       _logout();
-    } else if (route == 'grade' || route == 'class' || route == 'students') {
-      Navigator.pushNamed(context, route);
+    } else if (formattedRoute == '/grade' ||
+        formattedRoute == '/class' ||
+        formattedRoute == '/students') {
+      Navigator.pushNamed(context, formattedRoute);
     } else {
       // Nếu là menu khác mà vẫn nằm trong HomeScreen, cập nhật _selectedRoute
       setState(() {
-        _selectedRoute = route;
+        _selectedRoute = formattedRoute;
       });
     }
   }

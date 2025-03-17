@@ -98,7 +98,7 @@ class _GradeScreenState extends State<GradeScreen> {
   @override
   Widget build(BuildContext context) {
     return ManagementLayout(
-      selectedRoute: 'grade',
+      selectedRoute: '/grade',
       userName: _userName,
       userRole: _userRole,
       title: 'Quản lý khối',
